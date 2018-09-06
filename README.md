@@ -21,3 +21,7 @@
     yarn
     docker-compose up -d # run rethinkdb
     yarn start-all       # buggy
+
+## TODO:
+
+### Add one more microservice to handle receipts markers - ERC20, ERC223, ERC721, contract-call, events, logs parser
