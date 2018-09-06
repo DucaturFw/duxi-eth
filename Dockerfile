@@ -1,0 +1,2 @@
+# mock
+FROM ubuntu;
