@@ -5,11 +5,24 @@
     "main": "src/index.ts",
     "author": "Anatoly Bardukov",
     "license": "MIT",
+    "scripts": {
+        "postinstall": "rm -f node_modules/web3/*.d.ts",
+        "start": "ts-node bin/blocks.ts",
+        "start-tx": "ts-node bin/txs.ts",
+        "start-receipts": "ts-node bin/receipts.ts",
+        "start-all": "yarn start & yarn start-tx & yarn start-receipts &",
+        "test-tsc": "tsc --noEmit",
+        "test": "jest",
+        "ci": "yarn test-tsc && yarn test"
+    },
     "dependencies": {
-        "@types/rethinkdb": "^2.3.13",
+        "@types/bn.js": "^4.11.1",
+        "@types/rethinkdb": "^2.3.11",
         "axios": "^0.18.0",
         "dotenv": "^6.0.0",
         "rethinkdb": "^2.3.3",
+        "ts-node": "^7.0.1",
+        "typescript": "^3.0.3",
         "web3": "^1.0.0-beta.36"
     }
 }

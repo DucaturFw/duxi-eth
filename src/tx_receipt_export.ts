@@ -1,11 +1,10 @@
-console.log("starting tx syncer")
-
+import r from 'rethinkdb'
 import * as DB from "./db"
 import {web3, RDB_NODE, DB_NAME, TABLE_TX_RECEIPTS, TABLE_TXS} from './config'
 
-async function syncTxReceipts(conn, db, txsTable, receiptsTable) {
-    let blocks = await DB.getPendingReceipts(conn, db, txsTable, receiptsTable)
-    blocks.each(async (err, hash) => {
+async function syncTxReceipts(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string) {
+    let txs = await DB.getPendingReceipts(conn, db, txsTable, receiptsTable)
+    txs.each(async (err: any, hash: string) => {
         if (err) console.error(err)
         console.log('Syncing receipt for tx: ', hash)
         const receipt = await web3.eth.getTransactionReceipt(hash)
@@ -21,7 +20,9 @@ async function syncTxReceipts(conn, db, txsTable, receiptsTable) {
     })
 }
 
-export async function syncBlocksFromNode() {
+export async function syncTxReceiptsFromNode() {
+    console.log("starting receipt syncer")
+
 	const { conn, db } = await DB.connect(RDB_NODE, DB_NAME)
     await DB.checkTxReceiptsTable(conn, db, TABLE_TX_RECEIPTS)
     

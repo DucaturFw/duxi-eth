@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  rethinkdb:
+    image: "rethinkdb"
+    expose:
+      - 28015
+    ports:
+      - "28015:28015"

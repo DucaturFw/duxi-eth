@@ -1,18 +1,17 @@
-console.log("starting block syncer")
-
+import r from "rethinkdb"
 import * as DB from "./db"
 import {web3, RDB_NODE, DB_NAME, TABLE_BLOCKS} from './config'
 
 const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
-async function syncBlock(conn, db, table, blockNumber) {
+async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumber: number) {
 	const block = await web3.eth.getBlock(blockNumber)
 	console.log('Syncing: ', block.number)
 	await DB.insert(conn, db, table, block);
 	return block;
 }
 
-async function syncBlocks(conn, db, table) {
+async function syncBlocks(conn: r.Connection, db: r.Db, table: string) {
 	let blockHeight = await web3.eth.getBlockNumber()
 	console.log(`block height: ${blockHeight}`)
 	let lastBlock = await DB.getLastSyncedBlock(conn, db, table)
@@ -28,7 +27,8 @@ async function syncBlocks(conn, db, table) {
 		let currBlock = await syncBlock(conn, db, table, lastBlock)
 		// for later blocks verify parent
 		if (blockHeight - lastBlock >= 15) {
-			if ((await DB.get(conn, db, table, lastBlock - 1)).hash !== currBlock.parentHash) {
+			let parent = await DB.get(conn, db, table, lastBlock - 1) || { hash: '' }
+			if ((<typeof currBlock>parent).hash !== currBlock.parentHash) {
 				await syncBlock(conn, db, table, lastBlock - 1);
 			}
 		}
@@ -37,6 +37,8 @@ async function syncBlocks(conn, db, table) {
 }
 
 export async function syncBlocksFromNode() {
+	console.log("starting block syncer")
+
 	const { conn, db } = await DB.connect(RDB_NODE, DB_NAME)
 	await DB.checkBlocksTable(conn, db, TABLE_BLOCKS)
 	
