@@ -6,35 +6,47 @@ export async function connect(node: string, db: string) {
     return { conn, db: rdb }
 }
 
-export async function checkBlocksTable(conn: r.Connection, db: r.Db, name: string) {
-    // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(name) == -1) {
-        await db.tableCreate(name, { primaryKey: "number" }).run(conn)
-    }
-
-    // add indexes
-    let indexes = await db.table(name).indexList().run(conn)
-    if (indexes.indexOf('hash') == -1) {
-        await db.table(name).indexCreate('hash').run(conn)
+async function createSimpleIndex(conn, db, table, index_name) {
+    let indexes = await db.table(table).indexList().run(conn)
+    if (indexes.indexOf(index_name) == -1) {
+        await db.table(table).indexCreate(index_name).run(conn)
+        await db.table(table).indexWait(index_name).run(conn)
     }
 }
 
-export async function checkTxsTable(conn: r.Connection, db: r.Db, name: string) {
+export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
     let tables = await db.tableList().run(conn)
-    if (tables.indexOf(name) == -1) {
-        await db.tableCreate(name, { primaryKey: 'hash' }).run(conn)
+    if (tables.indexOf(table) == -1) {
+        await db.tableCreate(table, { primaryKey: "number" }).run(conn)
     }
-
     // add indexes
-    let indexes = await db.table(name).indexList().run(conn)
-    if (indexes.indexOf('from') == -1) {
-        await db.table(name).indexCreate('from').run(conn)
+    const simpleIndexes = ['hash']
+    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+}
+
+export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string) {
+    // create table
+    let tables = await db.tableList().run(conn)
+    if (tables.indexOf(table) == -1) {
+        await db.tableCreate(table, { primaryKey: 'hash' }).run(conn)
     }
-    if (indexes.indexOf('to') == -1) {
-        await db.table(name).indexCreate('to').run(conn)
+    // add indexes
+    const simpleIndexes = ['from', 'to']
+    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+}
+
+export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: string) {
+    // create table
+    let tables = await db.tableList().run(conn)
+    if (tables.indexOf(table) == -1) {
+        // initially it has `transactionHash` field,
+        // but we replace it with `hash` for uniformity
+        await db.tableCreate(table, { primaryKey: 'hash' }).run(conn)
     }
+    // add indexes
+    const simpleIndexes = ['from', 'to', 'contractAddress', 'logs']
+    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
 }
 
 export async function getLastSyncedBlock(conn, db, table) {
@@ -43,6 +55,10 @@ export async function getLastSyncedBlock(conn, db, table) {
 
 export async function insert(conn, db, table, obj) {
 	return db.table(table).insert(obj).run(conn)
+}
+
+export async function get(conn, db, table, idx) {
+	return db.table(table).get(idx).run(conn)
 }
 
 export async function getPendingTxs(conn, db, blocksTable, txsTable) {
@@ -61,29 +77,4 @@ export async function getPendingReceipts(conn, db, txsTable, receiptsTable) {
         .concatMap(x => [x('hash')])
         .filter(a => db.table(receiptsTable).getAll(a).isEmpty())
         .run(conn) as r.CursorResult<{ hash: string }>
-}
-
-export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, name: string) {
-    // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(name) == -1) {
-        // initially it has `transactionHash` field,
-        // but we replace it with `hash` for uniformity
-        await db.tableCreate(name, { primaryKey: 'hash' }).run(conn)
-    }
-
-    // add indexes
-    let indexes = await db.table(name).indexList().run(conn)
-    if (indexes.indexOf('from') == -1) {
-        await db.table(name).indexCreate('from').run(conn)
-    }
-    if (indexes.indexOf('to') == -1) {
-        await db.table(name).indexCreate('to').run(conn)
-    }
-    if (indexes.indexOf('contractAddress') == -1) {
-        await db.table(name).indexCreate('contractAddress').run(conn)
-    }
-    if (indexes.indexOf('logs') == -1) {
-        await db.table(name).indexCreate('logs').run(conn)
-    }
 }

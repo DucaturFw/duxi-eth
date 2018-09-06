@@ -5,6 +5,13 @@ import {web3, RDB_NODE, DB_NAME, TABLE_BLOCKS} from './config'
 
 const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
+async function syncBlock(conn, db, table, blockNumber) {
+	const block = await web3.eth.getBlock(blockNumber)
+	console.log('Syncing: ', block.number)
+	await DB.insert(conn, db, table, block);
+	return block;
+}
+
 async function syncBlocks(conn, db, table) {
 	let blockHeight = await web3.eth.getBlockNumber()
 	console.log(`block height: ${blockHeight}`)
@@ -18,9 +25,13 @@ async function syncBlocks(conn, db, table) {
 
 	lastBlock += 1;
 	while (lastBlock < blockHeight) {
-		const block = await web3.eth.getBlock(lastBlock)
-		console.log('Syncing: ', block.number)
-		await DB.insert(conn, db, table, block);
+		let currBlock = await syncBlock(conn, db, table, lastBlock)
+		// for later blocks verify parent
+		if (blockHeight - lastBlock >= 15) {
+			if ((await DB.get(conn, db, table, lastBlock - 1)).hash !== currBlock.parentHash) {
+				await syncBlock(conn, db, table, lastBlock - 1);
+			}
+		}
 		lastBlock += 1;
 	}
 }

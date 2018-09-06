@@ -2,7 +2,9 @@ import Web3 from 'web3'
 
 require('dotenv').config()
 
-export const NODE = process.env.DUXI_ETH_NODE || ""
+const PUBLIC_ETH_NODES = [""]
+
+export const NODE = process.env.DUXI_ETH_NODE || PUBLIC_ETH_NODES[Math.floor(Math.random() * PUBLIC_ETH_NODES.length)];
 export const RDB_NODE = process.env.DUXI_RETHINKDB_NODE || ""
 export const TABLE_BLOCKS = "eth_blocks"
 export const TABLE_TXS = "eth_txs"
