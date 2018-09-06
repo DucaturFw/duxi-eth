@@ -64,9 +64,8 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
 }
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
-	return db.table(table)
-        .orderBy({ index: 'number' })
-        .nth(-1)('number')
+	return (db.table(table) as any)
+        .max('number')('number')
         .default(0)
         .run(conn)
 }
