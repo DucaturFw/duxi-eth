@@ -7,7 +7,12 @@ async function syncTxReceipts(conn: r.Connection, db: r.Db, txsTable: string, re
     txs.each(async (err: any, hash: string) => {
         if (err) console.error(err)
         console.log('Syncing receipt for tx: ', hash)
-        const receipt = await web3.eth.getTransactionReceipt(hash)
+        let receipt;
+        try {
+            receipt = await web3.eth.getTransactionReceipt(hash)
+        } catch (err) {
+            console.error('Failed to fetch receipt for transaction', hash, err)
+        }
         if (receipt) {
             // replace `transactionHash` with `hash` for uniformity
             const txRec = {...receipt, hash}

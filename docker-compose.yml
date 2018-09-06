@@ -5,5 +5,7 @@ services:
     image: "rethinkdb"
     expose:
       - 28015
+      - 8080
     ports:
       - "28015:28015"
+      - "8080:8080"

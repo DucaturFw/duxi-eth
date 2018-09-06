@@ -64,6 +64,7 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
 }
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
+    return 400000;
 	return db.table(table)
         .orderBy({ index: 'number' })
         .nth(-1)('number')
@@ -86,7 +87,7 @@ export async function getPendingTxs(conn: r.Connection, db: r.Db, blocksTable: s
         .changes(<ChangesOptions>{ includeInitial: true })
         .map((x: any) => <any>x('new_val'))
         .concatMap((x: any) => <any>x('transactions'))
-        .filter((a: any) => db.table(txsTable).getAll(a('transactions')).isEmpty())
+        .filter((a: any) => db.table(txsTable).getAll(a).isEmpty())
         .run(conn)
 }
 
@@ -94,7 +95,6 @@ export async function getPendingReceipts(conn: r.Connection, db: r.Db, txsTable:
     return db.table(txsTable)
         .changes(<ChangesOptions>{ includeInitial: true })
         .map((x: any) => <any>x('new_val'))
-        .concatMap((x: any) => x('hash'))
-        .filter((a: any) => db.table(receiptsTable).getAll(a).isEmpty())
+        .filter((a: any) => db.table(receiptsTable).getAll(a('hash')).isEmpty())
         .run(conn)
 }
