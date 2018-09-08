@@ -30,10 +30,10 @@ export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: stri
     let tables = await db.tableList().run(conn)
     if (tables.indexOf(table) == -1) {
         console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: "number" }).run(conn)
+        await db.tableCreate(table, { primary_key: "hash" }).run(conn)
     }
     // add indexes
-    const simpleIndexes = ['hash']
+    const simpleIndexes = ['number']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
 }
 
@@ -47,6 +47,13 @@ export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string)
     // add indexes
     const simpleIndexes = ['from', 'to']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    // compound indexes
+    let indexes = await db.table(table).indexList().run(conn)
+    if (indexes.indexOf('addresses') == -1) {
+        console.log(`Creating compound index 'addresses' for table '${table}'`)
+        await db.table(table).indexCreate('addresses', [r.row('from'), r.row('to')]).run(conn)
+        await db.table(table).indexWait('addresses').run(conn)
+    }
 }
 
 export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: string) {
@@ -59,7 +66,38 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
         await db.tableCreate(table, { primary_key: 'hash' }).run(conn)
     }
     // add indexes
-    const simpleIndexes = ['from', 'to', 'contractAddress', 'logs']
+    const simpleIndexes = ['from', 'to', 'blockNumber']
+    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    // compound indexes
+    let indexes = await db.table(table).indexList().run(conn)
+    if (indexes.indexOf('addresses') == -1) {
+        console.log(`Creating compound index 'addresses' for table '${table}'`)
+        await db.table(table).indexCreate('addresses', [r.row('from'), r.row('to')]).run(conn)
+        await db.table(table).indexWait('addresses').run(conn)
+    }
+}
+
+export async function checkTransfersTable(conn: r.Connection, db: r.Db, table: string) {
+    // create table
+    let tables = await db.tableList().run(conn)
+    if (tables.indexOf(table) == -1) {
+        console.log(`Creating table '${table}'`)
+        await db.tableCreate(table, { primary_key: "from_hash" }).run(conn)
+    }
+    // add indexes
+    const simpleIndexes = ['hash', 'from', 'to'] // probably `name` would be needed
+    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+}
+
+export async function checkContractsTable(conn: r.Connection, db: r.Db, table: string) {
+    // create table
+    let tables = await db.tableList().run(conn)
+    if (tables.indexOf(table) == -1) {
+        console.log(`Creating table '${table}'`)
+        await db.tableCreate(table, { primary_key: "address" }).run(conn)
+    }
+    // add indexes
+    const simpleIndexes = ['type']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
 }
 
@@ -90,9 +128,36 @@ export async function getPendingTxs(conn: r.Connection, db: r.Db, blocksTable: s
 }
 
 export async function getPendingReceipts(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string) {
+    console.debug('Getting receipts')
     return db.table(txsTable)
         .changes(<ChangesOptions>{ includeInitial: true })
         .map((x: any) => <any>x('new_val'))
         .filter((a: any) => db.table(receiptsTable).getAll(a('hash')).isEmpty())
+        .run(conn)
+}
+
+export function getAllTransfers(db: r.Db, txsTable: string, receiptsTable: string) {
+    console.debug('Getting transactions')
+    return r.union(
+        db.table(txsTable)
+            .changes(<ChangesOptions>{ includeInitial: true})
+            .map((x: any) => <any>x('new_val')),
+        db.table(receiptsTable)
+            .changes(<ChangesOptions>{ includeInitial: true})
+            .map((x: any) => <any>x('new_val')),
+        )
+}
+
+export async function getTransfers(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, transfersTable: string) {
+    console.debug('Filtering new transfers')
+    return getAllTransfers(db, txsTable, receiptsTable)
+        .filter((a: any) => db.table(transfersTable).getAll(a('hash'), {index: 'hash'}).isEmpty())
+        .run(conn)
+}
+
+export async function getContracts(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, contractsTable: string) {
+    console.debug('Filtering new transfers')
+    return getAllTransfers(db, txsTable, receiptsTable)
+        .filter((a: any) => db.table(contractsTable).getAll(a('to'), a('contractAddress'), {index: 'address'}).isEmpty())
         .run(conn)
 }
