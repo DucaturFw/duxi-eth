@@ -113,6 +113,11 @@ export async function insert(conn: r.Connection, db: r.Db, table: string, obj: a
 	return db.table(table).insert(obj).run(conn)
 }
 
+export async function update(conn: r.Connection, db: r.Db, table: string, primary_key: string, data: any) {
+    console.info(`Updating '${primary_key}' in '${table}'`)
+	return db.table(table).get(primary_key).update(data).run(conn)
+}
+
 export async function get(conn: r.Connection, db: r.Db, table: string, idx: any) {
 	return db.table(table).get(idx).run(conn)
 }
@@ -148,6 +153,15 @@ export function getAllTransfers(db: r.Db, txsTable: string, receiptsTable: strin
         )
 }
 
+export async function getContractCreations(conn: r.Connection, db: r.Db, receiptsTable: string, contractsTable: string) {
+    console.debug('Getting contracts creations')
+    return db.table(receiptsTable)
+        .changes(<ChangesOptions>{ includeInitial: true})
+        .map((x: any) => <any>x('new_val'))
+        .filter((a: any) => a('contractAddress') && db.table(contractsTable).getAll(a('contractAddress')).isEmpty())
+        .run(conn)
+}
+
 export async function getTransfers(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, transfersTable: string) {
     console.debug('Filtering new transfers')
     return getAllTransfers(db, txsTable, receiptsTable)
@@ -155,9 +169,11 @@ export async function getTransfers(conn: r.Connection, db: r.Db, txsTable: strin
         .run(conn)
 }
 
-export async function getContracts(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, contractsTable: string) {
-    console.debug('Filtering new transfers')
-    return getAllTransfers(db, txsTable, receiptsTable)
-        .filter((a: any) => db.table(contractsTable).getAll(a('to'), a('contractAddress'), {index: 'address'}).isEmpty())
+export async function getContractsCalls(conn: r.Connection, db: r.Db, receiptsTable: string, contractsTable: string) {
+    console.debug('Filtering contract calls (non-empty logs)')
+    return db.table(receiptsTable)
+        .changes(<ChangesOptions>{ includeInitial: true})
+        .map((x: any) => <any>x('new_val'))
+        .filter((a: any) => !a('logs').isEmpty())
         .run(conn)
 }
