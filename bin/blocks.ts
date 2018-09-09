@@ -1,3 +1,3 @@
-import { syncBlocksFromNode } from '../src'
+import { syncBlocksFromNode } from '../src/explorer'
 
 ;(async() => await syncBlocksFromNode())()

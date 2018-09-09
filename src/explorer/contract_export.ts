@@ -12,22 +12,24 @@ async function syncContracts(conn: r.Connection, db: r.Db, receiptsTable: string
             address: receipt.contractAddress,
             type: null,
             hash: receipt.hash,
+            creator: receipt.from,
             binary: await web3.eth.getCode(receipt.contractAddress)
         })
     })
     // get contract types
-    let transfers = await DB.getContractsCalls(conn, db, receiptsTable, contractsTable)
+    let transfers = await DB.getContractsCalls(conn, db, receiptsTable)
     transfers.each(async (err: any, receipt: any) => {
         // https://ethereum.stackexchange.com/questions/38381/how-can-i-identify-that-transaction-is-erc20-token-creation-contract
         // ERC20: https://ethereum.stackexchange.com/questions/12553/understanding-logs-and-log-blooms
         // ERC223: https://ethereum.stackexchange.com/questions/29455/erc223-backwards-compatibility-with-erc20?rq=1
         if (err) console.error(err)
-        receipt.logs.array.forEach(async (log: any) => {
-            let type = TYPES_MAP[log.topics[0]]
-            if (type) {
-                await DB.update(conn, db, contractsTable, log.address, { type });
-            }
-        });
+        if (receipt.logs.length)
+            receipt.logs.forEach(async (log: any) => {
+                let type = TYPES_MAP[log.topics[0]]
+                if (type) {
+                    await DB.update(conn, db, contractsTable, log.address, { type });
+                }
+            });
     })
 }
 

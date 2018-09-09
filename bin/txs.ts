@@ -1,3 +1,3 @@
-import { syncTxsFromNode } from '../src'
+import { syncTxsFromNode } from '../src/explorer'
 
 ;(async() => await syncTxsFromNode())()

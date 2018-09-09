@@ -1,3 +1,3 @@
-import { syncTxReceiptsFromNode } from '../src'
+import { syncTxReceiptsFromNode } from '../src/explorer'
 
 ;(async() => await syncTxReceiptsFromNode())()

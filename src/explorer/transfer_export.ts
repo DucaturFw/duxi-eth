@@ -26,14 +26,17 @@ async function syncTransfers(conn: r.Connection, db: r.Db, txsTable: string, rec
         console.log('Syncing tx: ', transfer.hash)
         let from_hash: any = null;
         if (transfer.logs) {
-            transfer.logs.array.forEach(async (log: any) => {
+            transfer.logs.forEach(async (log: any) => {
                 let type = TYPES_MAP[log.topics[0]]
                 if (type) {
                     let from = log.topics[1]
                     let to = log.topics[2]
                     let amount = log.data.substring(0, 66)
                     from_hash = [from, transfer.hash]
-                    await DB.insert(conn, db, transfersTable, { from_hash, from, to, amount, name: await (new web3.eth.Contract(ERC_NAME_ABI, log.address) as any).name.call() })
+                    const contract = new web3.eth.Contract(ERC_NAME_ABI, log.address);
+                    const name = await contract.methods.name().call({from: '0x0'})
+                    console.debug(`Detected token ${name} transfer: `, log.address)
+                    await DB.insert(conn, db, transfersTable, { from_hash, from, hash: transfer.hash, to, amount, name })
                 }
             });
         } else {
@@ -41,7 +44,7 @@ async function syncTransfers(conn: r.Connection, db: r.Db, txsTable: string, rec
             let to = transfer.to
             let amount = transfer.value
             from_hash = [from, transfer.hash]
-            await DB.insert(conn, db, transfersTable, { from_hash, from, to, amount, name: 'ETH' })
+            await DB.insert(conn, db, transfersTable, { from_hash, from, to, hash: transfer.hash, amount, name: 'ETH' })
         }
     })
 }

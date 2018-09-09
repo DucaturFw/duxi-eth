@@ -1,6 +1,6 @@
 import r from "rethinkdb"
 import * as DB from "./db"
-import {web3, RDB_NODE, DB_NAME, TABLE_BLOCKS} from './config'
+import {web3, RDB_NODE, DB_NAME, TABLE_BLOCKS, BLOCK_STEP, START_BLOCK, VALIDATE_DEPTH} from './config'
 
 const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
@@ -15,24 +15,26 @@ async function syncBlocks(conn: r.Connection, db: r.Db, table: string) {
 	let blockHeight = await web3.eth.getBlockNumber()
 	console.log(`block height: ${blockHeight}`)
 	let lastBlock = await DB.getLastSyncedBlock(conn, db, table)
-	console.log(`last block: ${lastBlock}`)
+	lastBlock = Math.max(lastBlock, parseInt(START_BLOCK))
+	let step = parseInt(BLOCK_STEP)
+	console.log(`last block: ${lastBlock}, blocks step: ${step}`)
 
 	console.assert(blockHeight > lastBlock, "chain is fucking unsynced")
-	if (blockHeight == lastBlock + 1) {
+	if (blockHeight <= lastBlock + step) {
 		return delay(30000)
 	}
 
-	lastBlock += 1;
+	lastBlock += step;
 	while (lastBlock < blockHeight) {
 		let currBlock = await syncBlock(conn, db, table, lastBlock)
 		// for later blocks verify parent
-		if (blockHeight - lastBlock >= 15) {
-			let parent = await DB.get(conn, db, table, lastBlock - 1) || { hash: '' }
+		if (blockHeight - lastBlock <= VALIDATE_DEPTH) {
+			let parent = await DB.get(conn, db, table, lastBlock - 1, 'number') || { hash: '' }
 			if ((<typeof currBlock>parent).hash !== currBlock.parentHash) {
 				await syncBlock(conn, db, table, lastBlock - 1);
 			}
 		}
-		lastBlock += 1;
+		lastBlock += step;
 	}
 }
 
