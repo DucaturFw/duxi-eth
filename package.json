@@ -7,10 +7,13 @@
     "license": "MIT",
     "scripts": {
         "postinstall": "rm -f node_modules/web3/*.d.ts",
+        "setup": "ts-node bin/setup.ts",
         "start": "ts-node bin/blocks.ts",
-        "start-tx": "ts-node bin/txs.ts",
+        "start-txs": "ts-node bin/txs.ts",
         "start-receipts": "ts-node bin/receipts.ts",
-        "start-all": "npm-run-all --parallel start start-tx start-receipts",
+        "start-contracts": "ts-node bin/contracts.ts",
+        "start-transfers": "ts-node bin/transfers.ts",
+        "start-all": "npm-run-all --parallel setup start start-txs start-receipts start-contracts start-transfers",
         "test-tsc": "tsc --noEmit",
         "test": "jest",
         "ci": "yarn test-tsc && yarn test"
@@ -18,6 +21,7 @@
     "dependencies": {
         "@types/bn.js": "^4.11.1",
         "@types/rethinkdb": "^2.3.11",
+        "@types/web3": "^1.0.3",
         "axios": "^0.18.0",
         "dotenv": "^6.0.0",
         "rethinkdb": "^2.3.3",
