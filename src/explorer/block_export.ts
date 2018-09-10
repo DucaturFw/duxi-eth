@@ -15,9 +15,9 @@ async function syncBlocks(conn: r.Connection, db: r.Db, table: string) {
 	let blockHeight = await web3.eth.getBlockNumber()
 	console.log(`block height: ${blockHeight}`)
 	let lastBlock = await DB.getLastSyncedBlock(conn, db, table)
-	lastBlock = Math.max(lastBlock, parseInt(START_BLOCK))
+	lastBlock = Math.max(lastBlock, parseInt(START_BLOCK) - 1) + 1
 	let step = parseInt(BLOCK_STEP)
-	console.log(`last block: ${lastBlock}, blocks step: ${step}`)
+	console.log(`Sync from block: ${lastBlock}, blocks step: ${step}`)
 
 	console.assert(blockHeight > lastBlock, "chain is fucking unsynced")
 	if (blockHeight <= lastBlock + step) {
