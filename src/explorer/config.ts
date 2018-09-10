@@ -6,6 +6,8 @@ const PUBLIC_ETH_NODES = [""]
 
 export const NODE = process.env.DUXI_ETH_NODE || PUBLIC_ETH_NODES[Math.floor(Math.random() * PUBLIC_ETH_NODES.length)];
 export const RDB_NODE = process.env.DUXI_RETHINKDB_NODE || ""
+export const RDB_USER = process.env.DUXI_RETHINKDB_USER || 'admin'
+export const RDB_PWD = process.env.DUXI_RETHINKDB_PASSWORD || ''
 export const DB_NAME = process.env.DUXI_ETH_DB_NAME || ""
 export const START_BLOCK = process.env.DUXI_ETH_START_BLOCK || "0"
 export const BLOCK_STEP = process.env.DUXI_ETH_BLOCK_STEP || "1"
@@ -26,5 +28,7 @@ export const TYPES_MAP: any = {
 console.assert(NODE, "please provide $DUXI_ETH_NODE!")
 console.assert(RDB_NODE, "please provide $DUXI_RETHINKDB_NODE!")
 console.assert(DB_NAME, "please provide $DUXI_ETH_DB_NAME!")
+console.assert(RDB_USER, "please provide $DUXI_RETHINKDB_USER!")
+console.assert(RDB_PWD, "please provide $DUXI_RETHINKDB_PASSWORD!")
 
 export const web3 = new Web3(new Web3.providers.HttpProvider(NODE));

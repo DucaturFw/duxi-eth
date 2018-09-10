@@ -1,4 +1,5 @@
 import r, { ChangesOptions } from 'rethinkdb'
+import { RDB_USER, RDB_PWD } from './config';
 
 export async function getOrCreateDatabase(database: string, connection: r.Connection): Promise<r.Db> {
     console.log('Opening database ', database)
@@ -12,7 +13,7 @@ export async function getOrCreateDatabase(database: string, connection: r.Connec
 
 export async function connect(node: string, db: string) {
     console.log(`Connecting to '${node}'`)
-    let conn = await r.connect(node.replace(/^http\:\/\//, '').replace(/\:\d+$/, ''))
+    let conn = await r.connect({host: node.replace(/^http\:\/\//, '').replace(/\:\d+$/, ''), user: RDB_USER, password: RDB_PWD})
     let rdb = await getOrCreateDatabase(db, conn);
     return { conn, db: rdb }
 }
