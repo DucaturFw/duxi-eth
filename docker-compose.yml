@@ -9,78 +9,71 @@ services:
     ports:
       - "28015:28015"
       - "8080:8080"
+
   setup:
     build:
       context: .
       dockerfile: Dockerfile
+    image: microservices:1
     command: ["yarn", "setup"]
     env_file: .env
     depends_on:
       - rethinkdb
+
   blocks1:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start"]
-    env_file: .env
     environment:
       DUXI_ETH_START_BLOCK: 5000000
       DUXI_ETH_BLOCK_STEP: 3
+    env_file: .env
     depends_on:
       - setup
   blocks2:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start"]
-    env_file: .env
     environment:
       DUXI_ETH_START_BLOCK: 5000001
       DUXI_ETH_BLOCK_STEP: 3
+    env_file: .env
     depends_on:
       - setup
   blocks3:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start"]
-    env_file: .env
     environment:
       DUXI_ETH_START_BLOCK: 5000002
       DUXI_ETH_BLOCK_STEP: 3
+    env_file: .env
     depends_on:
       - setup
+
   txs:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start-txs"]
     env_file: .env
     depends_on:
       - setup
+
   receipts:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start-receipts"]
     env_file: .env
     depends_on:
       - setup
       - txs
+
   contracts:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start-contracts"]
     env_file: .env
     depends_on:
       - setup
       - txs
       - receipts
+
   transfers:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start-transfers"]
     env_file: .env
     depends_on:
