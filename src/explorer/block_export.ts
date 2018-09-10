@@ -4,10 +4,17 @@ import {web3, RDB_NODE, DB_NAME, TABLE_BLOCKS, BLOCK_STEP, START_BLOCK, VALIDATE
 
 const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
-async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumber: number) {
+async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumber: number, recursive: boolean = false) {
 	const block = await web3.eth.getBlock(blockNumber)
 	console.info('Syncing: ', block.number)
 	await DB.insert(conn, db, table, block);
+
+	if (recursive) {
+		let parent = await DB.get(conn, db, table, blockNumber - 1, 'number') || { hash: '' }
+		if ((<typeof block>parent).hash !== block.parentHash) {
+			await syncBlock(conn, db, table, blockNumber - 1);
+		}
+	}
 	return block;
 }
 
@@ -16,7 +23,8 @@ async function syncBlocks(conn: r.Connection, db: r.Db, table: string) {
 	console.debug(`block height: ${blockHeight}`)
 	let lastBlock = await DB.getLastSyncedBlock(conn, db, table)
 	let step = parseInt(BLOCK_STEP)
-	let nextBlock = Math.max(lastBlock + 1, parseInt(START_BLOCK))
+	const startBlock = parseInt(START_BLOCK)
+	let nextBlock = Math.max(Math.ceil((lastBlock - startBlock % step) / step) + (startBlock % step), startBlock)
 	console.debug(`Sync from block: ${nextBlock}, blocks step: ${step}`)
 
 	console.assert(blockHeight > lastBlock, "chain is fucking unsynced")
@@ -30,7 +38,7 @@ async function syncBlocks(conn: r.Connection, db: r.Db, table: string) {
 		if (blockHeight - nextBlock <= VALIDATE_DEPTH) {
 			let parent = await DB.get(conn, db, table, nextBlock - 1, 'number') || { hash: '' }
 			if ((<typeof currBlock>parent).hash !== currBlock.parentHash) {
-				await syncBlock(conn, db, table, nextBlock - 1);
+				await syncBlock(conn, db, table, nextBlock - 1, true);
 			}
 		}
 		nextBlock += step;

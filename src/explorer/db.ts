@@ -83,7 +83,7 @@ export async function checkTransfersTable(conn: r.Connection, db: r.Db, table: s
     let tables = await db.tableList().run(conn)
     if (tables.indexOf(table) == -1) {
         console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: "from_hash" }).run(conn)
+        await db.tableCreate(table, { primary_key: "from_to_hash" }).run(conn)
     }
     // add indexes
     const simpleIndexes = ['hash', 'from', 'to'] // probably `name` would be needed
@@ -139,17 +139,10 @@ export async function getPendingTxs(conn: r.Connection, db: r.Db, blocksTable: s
 export async function getPendingReceipts(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string) {
     console.debug('Getting receipts')
     return db.table(txsTable)
-        .changes(<ChangesOptions>{ includeInitial: true, squash: 2 })
+        .changes(<ChangesOptions>{ includeInitial: true, squash: 1 })
         .map((x: any) => <any>x('new_val'))
         .filter((a: any) => db.table(receiptsTable).getAll(a('hash')).isEmpty())
         .run(conn)
-}
-
-export function getAllTransfers(db: r.Db, txsTable: string, receiptsTable: string) {
-    console.debug('Getting transactions')
-    return db.table(txsTable).union(db.table(receiptsTable))
-        .changes(<ChangesOptions>{ includeInitial: true, squash: 2})
-        .map((x: any) => <any>x('new_val'))
 }
 
 export async function getContractCreations(conn: r.Connection, db: r.Db, receiptsTable: string, contractsTable: string) {
@@ -159,6 +152,13 @@ export async function getContractCreations(conn: r.Connection, db: r.Db, receipt
         .map((x: any) => <any>x('new_val'))
         .filter((a: any) => a('contractAddress') && db.table(contractsTable).getAll(a('contractAddress')).isEmpty())
         .run(conn)
+}
+
+export function getAllTransfers(db: r.Db, txsTable: string, receiptsTable: string) {
+    console.debug('Getting transactions')
+    return db.table(txsTable).union(db.table(receiptsTable))
+        .changes(<ChangesOptions>{ includeInitial: true })
+        .map((x: any) => <any>x('new_val'))
 }
 
 export async function getTransfers(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, transfersTable: string) {

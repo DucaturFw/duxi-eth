@@ -18,39 +18,68 @@ const ERC_NAME_ABI = [
         "type": "function"
     },
 ]
+const contract = new web3.eth.Contract(ERC_NAME_ABI)
+
+async function transferFromLog(log: any, hash: string) {
+    const type = TYPES_MAP[log.topics[0]]
+    console.debug('Detected type:', type)
+    switch (type) {
+        case 'ERC20':
+        case 'ERC223':
+            const from = log.topics[1],
+                  to = log.topics[2],
+                  data = log.data.replace(/^0x/, '')
+            const amount = web3.utils.hexToNumberString(data.substring(0, 64)),
+                  restData = data.substring(64),
+                  from_to_hash = [from, to, hash]
+            contract.options.address = log.address
+            const name = await contract.methods.name().call()
+            console.debug(`Detected token transfer ${name}:`, log.address)
+            return {
+                hash: hash,
+                from_to_hash,
+                from,
+                to,
+                amount,
+                name,
+                data: restData
+            }
+    }
+    return null
+}
+
+function ethTransfer(transfer: any) {
+    const from = transfer.from
+    const to = transfer.to
+    const amount = transfer.value
+    const from_to_hash = [from, to, transfer.hash]
+    return {
+        hash: transfer.hash,
+        from_to_hash,
+        from,
+        to,
+        amount,
+        name: 'ETH'
+    }
+}
 
 async function syncTransfers(conn: r.Connection, db: r.Db, txsTable: string, receiptsTable: string, transfersTable: string) {
     let transfers = await DB.getTransfers(conn, db, txsTable, receiptsTable, transfersTable)
     transfers.each(async (err: any, transfer: any) => {
-        if (err) console.error(err)
-        console.log('Syncing tx: ', transfer.hash)
-        let from_hash: any = null;
-        if (transfer.logs) {
-            transfer.logs.forEach(async (log: any) => {
-                let type = TYPES_MAP[log.topics[0]]
-                if (type) {
-                    let from = log.topics[1]
-                    let to = log.topics[2]
-                    let amount = log.data.substring(0, 66)
-                    from_hash = [from, transfer.hash]
-                    const contract = new web3.eth.Contract(ERC_NAME_ABI, log.address);
-                    const name = await contract.methods.name().call({from: '0x0'})
-                    console.debug(`Detected token ${name} transfer: `, log.address)
-                    await DB.insert(conn, db, transfersTable, { from_hash, from, hash: transfer.hash, to, amount, name })
-                }
-            });
-        } else {
-            let from = transfer.from
-            let to = transfer.to
-            let amount = transfer.value
-            from_hash = [from, transfer.hash]
-            await DB.insert(conn, db, transfersTable, { from_hash, from, to, hash: transfer.hash, amount, name: 'ETH' })
-        }
+        if (err) return console.error(err)
+        console.debug('Syncing tx: ', transfer.hash)
+        if (transfer.logs && transfer.logs.length > 0) await Promise.all(
+            transfer.logs.map(async (log: any) => {
+                const parsedTransfer = await transferFromLog(log, transfer.hash)
+                if (parsedTransfer) await DB.insert(conn, db, transfersTable, parsedTransfer)
+            })
+        );
+        if (transfer.value) await DB.insert(conn, db, transfersTable, ethTransfer(transfer))
     })
 }
 
 export async function syncTransfersFromNode() {
-    console.log("starting transfers syncer")
+    console.debug("starting transfers syncer")
 
 	const { conn, db } = await DB.connect(RDB_NODE, DB_NAME)
     await DB.checkTransfersTable(conn, db, TABLE_TRANSFERS)
