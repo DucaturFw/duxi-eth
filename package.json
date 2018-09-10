@@ -8,6 +8,7 @@
     "scripts": {
         "postinstall": "rm -f node_modules/web3/*.d.ts",
         "setup": "ts-node bin/setup.ts",
+        "server": "node bin/api.js",
         "start": "ts-node bin/blocks.ts",
         "start-txs": "ts-node bin/txs.ts",
         "start-receipts": "ts-node bin/receipts.ts",
@@ -20,13 +21,22 @@
     },
     "dependencies": {
         "@types/bn.js": "^4.11.1",
+        "@types/node": "^10.9.4",
         "@types/rethinkdb": "^2.3.11",
         "@types/web3": "^1.0.3",
         "axios": "^0.18.0",
         "dotenv": "^6.0.0",
+        "ethereumjs-tx": "^1.3.7",
+        "h2o2": "^8.1.2",
+        "hapi": "^17.5.2",
+        "inert": "^5.1.0",
+        "nodemon": "^1.18.3",
+        "nunjucks": "^3.1.3",
         "rethinkdb": "^2.3.3",
+        "socket.io": "^2.1.1",
         "ts-node": "^7.0.1",
         "typescript": "^3.0.3",
+        "vision": "^5.3.3",
         "web3": "^1.0.0-beta.36"
     },
     "devDependencies": {

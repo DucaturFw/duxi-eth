@@ -54,6 +54,7 @@ services:
     env_file: .env
     depends_on:
       - setup
+      - blocks1
 
   receipts:
     image: microservices:1
@@ -80,3 +81,10 @@ services:
       - setup
       - txs
       - receipts
+  
+  api:
+    image: microservices:1
+    command: ["yarn", "server"]
+    env_file: .env
+    depends_on:
+      - setup
