@@ -40,8 +40,8 @@ export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: stri
     // create table
     await getOrCreateTable(conn, db, table, "hash")
     // add indexes
-    const simpleIndexes = ['number']
-    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    const simpleIndexes = ['number'];
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
 }
 
 export async function checkUpsyncTable(conn: r.Connection, db: r.Db, table: string) {
@@ -53,8 +53,8 @@ export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string)
     // create table
     await getOrCreateTable(conn, db, table, "hash")
     // add indexes
-    const simpleIndexes = ['from', 'to']
-    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    const simpleIndexes = ['from', 'to'];
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
     // compound indexes
     let indexes = await db.table(table).indexList().run(conn)
     if (indexes.indexOf('addresses') == -1) {
@@ -71,7 +71,7 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
     await getOrCreateTable(conn, db, table, "hash")
     // add indexes
     const simpleIndexes = ['from', 'to', 'blockNumber']
-    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
     // compound indexes
     let indexes = await db.table(table).indexList().run(conn)
     if (indexes.indexOf('addresses') == -1) {
@@ -85,21 +85,21 @@ export async function checkTransfersTable(conn: r.Connection, db: r.Db, table: s
     // create table
     await getOrCreateTable(conn, db, table, "from_to_hash") // compound primary key for multi-transfer transactions
     // add indexes
-    const simpleIndexes = ['hash', 'from', 'to'] // probably `name` would be needed
-    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    const simpleIndexes = ['hash', 'from', 'to']; // probably `name` would be needed
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
 }
 
 export async function checkContractsTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
     await getOrCreateTable(conn, db, table, "address") // create address field for contract identity
     // add indexes
-    const simpleIndexes = ['type']
-    simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
+    const simpleIndexes = ['type'];
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
 }
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
 	return (db.table(table) as any)
-        .max({index: 'number'})('number')
+        .max('number')('number')
         .default(0)
         .run(conn)
 }
@@ -173,7 +173,7 @@ export async function getContractsCalls(conn: r.Connection, db: r.Db, receiptsTa
 
 export async function getBlocksNum(conn: r.Connection, db: r.Db, table: string, from: number, to: number): Promise<number[]> {
     console.debug(`Searching missing blocks from ${from}`)
-    return db.table(table)
-        .filter((x: any) => x('number') > from && x('number') < to, {index: 'number'})('number')
+    return (db.table(table)
+        .filter((x: any) => (x('number') >= from && x('number') <= to)) as any)('number')
         .run(conn)
 }

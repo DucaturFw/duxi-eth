@@ -6,7 +6,7 @@ const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time)
 
 let toBeFlushed: any[] = []
 const setup: any = {}
-let timer = 0;
+let timer: any = 0;
 
 async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumber: number, recursive: boolean = false, hist: boolean) {
 	const block = await web3.eth.getBlock(blockNumber)
@@ -59,6 +59,7 @@ export async function syncBlocksFromNode() {
 	let hist = parseInt(HISTORY_SYNC_MODE) > 0;
 
 	if (hist) {
+		console.log('History sync mode is ON')
 		setup.conn = conn
 		setup.db = db
 		setup.table = TABLE_BLOCKS

@@ -33,7 +33,7 @@ services:
     image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start"]
     environment:
-      DUXI_ETH_START_BLOCK: 5000000
+      DUXI_ETH_START_BLOCK: 1000000
       DUXI_ETH_BLOCK_STEP: 3
       HISTORY_SYNC_MODE: 1
     env_file: .env

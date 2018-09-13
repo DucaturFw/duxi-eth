@@ -31,7 +31,7 @@ export const TYPES_MAP: any = {
 console.assert(NODE, "please provide $DUXI_ETH_NODE!")
 console.assert(RDB_NODE, "please provide $DUXI_RETHINKDB_NODE!")
 console.assert(DB_NAME, "please provide $DUXI_ETH_DB_NAME!")
-console.assert(RDB_USER, "please provide $DUXI_RETHINKDB_USER!")
-console.assert(RDB_PWD, "please provide $DUXI_RETHINKDB_PASSWORD!")
+// console.assert(RDB_USER, "please provide $DUXI_RETHINKDB_USER!")
+// console.assert(RDB_PWD, "please provide $DUXI_RETHINKDB_PASSWORD!")
 
 export const web3 = new Web3(new Web3.providers.HttpProvider(NODE));
