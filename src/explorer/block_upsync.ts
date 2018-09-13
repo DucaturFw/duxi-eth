@@ -22,7 +22,7 @@ async function getMissingBlocks(conn: r.Connection, db: r.Db, table: string, sta
 
 async function upsyncBlocks(conn: r.Connection, db: r.Db, table: string) {
     let lastBlock = await DB.getLastSyncedBlock(conn, db, TABLE_BLOCKS)
-    let lastConcreteBlock: number = await DB.getLastSyncedBlock(conn, db, table)
+    let lastConcreteBlock: number = await DB.getLastUpsyncedBlock(conn, db, table)
     const startBlock = parseInt(START_BLOCK)
     const step = 1
     console.debug(`last synced block: ${lastBlock}, last concrete block: ${Math.max(lastConcreteBlock, startBlock)}`)

@@ -106,6 +106,12 @@ export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: st
         .default(0)
         .run(conn)
 }
+export async function getLastUpsyncedBlock(conn: r.Connection, db: r.Db, table: string) {
+	return (db.table(table) as any)
+        .max('number')('number')
+        .default(0)
+        .run(conn)
+}
 
 export async function insert(conn: r.Connection, db: r.Db, table: string, obj: any, options: any = {}) {
     console.info(`Inserting to '${table}'`)
