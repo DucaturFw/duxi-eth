@@ -8,4 +8,4 @@ import { connect, checkBlocksTable, checkTxsTable, checkTxReceiptsTable, checkTr
     await checkTxReceiptsTable(conn, db, TABLE_TX_RECEIPTS);
     await checkTransfersTable(conn, db, TABLE_TRANSFERS);
     await checkContractsTable(conn, db, TABLE_CONTRACTS);
-})
+})()

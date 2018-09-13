@@ -1,5 +1,5 @@
 import r, { ChangesOptions } from 'rethinkdb'
-import { RDB_USER, RDB_PWD } from './config';
+import { RDB_USER, RDB_PWD, TABLE_BLOCKS } from './config';
 
 export async function getOrCreateDatabase(database: string, connection: r.Connection): Promise<r.Db> {
     console.log('Opening database ', database)
@@ -11,10 +11,19 @@ export async function getOrCreateDatabase(database: string, connection: r.Connec
     return r.db(database)
 }
 
+async function getOrCreateTable(conn: r.Connection, db: r.Db, table: string, hash: string) {
+    let tables = await db.tableList().run(conn)
+    if (tables.indexOf(table) == -1) {
+        console.log(`Creating table '${table}', '${hash}' as primary key`)
+        await db.tableCreate(table, { primary_key: hash }).run(conn)
+    }
+}
+
 export async function connect(node: string, db: string) {
     console.log(`Connecting to '${node}'`)
     let conn = await r.connect({host: node.replace(/^http\:\/\//, '').replace(/\:\d+$/, ''), user: RDB_USER, password: RDB_PWD})
     let rdb = await getOrCreateDatabase(db, conn);
+    conn.use(db)
     return { conn, db: rdb }
 }
 
@@ -29,23 +38,20 @@ async function createSimpleIndex(conn: r.Connection, db: r.Db, table: string, in
 
 export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(table) == -1) {
-        console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: "hash" }).run(conn)
-    }
+    await getOrCreateTable(conn, db, table, "hash")
     // add indexes
     const simpleIndexes = ['number']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
 }
 
+export async function checkUpsyncTable(conn: r.Connection, db: r.Db, table: string) {
+    // create table
+    await getOrCreateTable(conn, db, table, "number")
+}
+
 export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(table) == -1) {
-        console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: 'hash' }).run(conn)
-    }
+    await getOrCreateTable(conn, db, table, "hash")
     // add indexes
     const simpleIndexes = ['from', 'to']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
@@ -60,13 +66,9 @@ export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string)
 
 export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(table) == -1) {
-        console.log(`Creating table '${table}'`)
-        // initially it has `transactionHash` field,
-        // but we replace it with `hash` for uniformity
-        await db.tableCreate(table, { primary_key: 'hash' }).run(conn)
-    }
+    // initially it has `transactionHash` field,
+    // but we replace it with `hash` for uniformity
+    await getOrCreateTable(conn, db, table, "hash")
     // add indexes
     const simpleIndexes = ['from', 'to', 'blockNumber']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
@@ -81,11 +83,7 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
 
 export async function checkTransfersTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(table) == -1) {
-        console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: "from_to_hash" }).run(conn)
-    }
+    await getOrCreateTable(conn, db, table, "from_to_hash") // compound primary key for multi-transfer transactions
     // add indexes
     const simpleIndexes = ['hash', 'from', 'to'] // probably `name` would be needed
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
@@ -93,11 +91,7 @@ export async function checkTransfersTable(conn: r.Connection, db: r.Db, table: s
 
 export async function checkContractsTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    let tables = await db.tableList().run(conn)
-    if (tables.indexOf(table) == -1) {
-        console.log(`Creating table '${table}'`)
-        await db.tableCreate(table, { primary_key: "address" }).run(conn)
-    }
+    await getOrCreateTable(conn, db, table, "address") // create address field for contract identity
     // add indexes
     const simpleIndexes = ['type']
     simpleIndexes.forEach(async (idx: string) => await createSimpleIndex(conn, db, table, idx))
@@ -105,14 +99,14 @@ export async function checkContractsTable(conn: r.Connection, db: r.Db, table: s
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
 	return (db.table(table) as any)
-        .max('number')('number')
+        .max({index: 'number'})('number')
         .default(0)
         .run(conn)
 }
 
-export async function insert(conn: r.Connection, db: r.Db, table: string, obj: any) {
+export async function insert(conn: r.Connection, db: r.Db, table: string, obj: any, options: any = {}) {
     console.info(`Inserting to '${table}'`)
-	return db.table(table).insert(obj).run(conn)
+	return db.table(table).insert(obj, ...options).run(conn)
 }
 
 export async function update(conn: r.Connection, db: r.Db, table: string, primary_key: string, data: any) {
@@ -174,5 +168,12 @@ export async function getContractsCalls(conn: r.Connection, db: r.Db, receiptsTa
     return db.table(receiptsTable)
         .changes(<ChangesOptions>{ includeInitial: true, squash: 1 })
         .map((x: any) => <any>x('new_val'))
+        .run(conn)
+}
+
+export async function getBlocksNum(conn: r.Connection, db: r.Db, table: string, from: number, to: number): Promise<number[]> {
+    console.debug(`Searching missing blocks from ${from}`)
+    return db.table(table)
+        .filter((x: any) => x('number') > from && x('number') < to, {index: 'number'})('number')
         .run(conn)
 }

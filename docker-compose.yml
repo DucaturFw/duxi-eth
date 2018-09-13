@@ -20,12 +20,22 @@ services:
     depends_on:
       - rethinkdb
 
+  upsync:
+    image: microservices:1
+    command: ["npm-run-all", "-s", "setup", "start-upsync"]
+    environment:
+      DUXI_ETH_START_BLOCK: 5000000
+    env_file: .env
+    depends_on:
+      - setup
+
   blocks1:
     image: microservices:1
     command: ["npm-run-all", "-s", "setup", "start"]
     environment:
       DUXI_ETH_START_BLOCK: 5000000
       DUXI_ETH_BLOCK_STEP: 3
+      HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup
@@ -35,6 +45,7 @@ services:
     environment:
       DUXI_ETH_START_BLOCK: 5000001
       DUXI_ETH_BLOCK_STEP: 3
+      HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup
@@ -44,6 +55,7 @@ services:
     environment:
       DUXI_ETH_START_BLOCK: 5000002
       DUXI_ETH_BLOCK_STEP: 3
+      HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup

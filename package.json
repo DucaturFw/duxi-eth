@@ -10,6 +10,7 @@
         "setup": "ts-node bin/setup.ts",
         "server": "node bin/api.js",
         "start": "ts-node bin/blocks.ts",
+        "start-upsync": "ts-node bin/upsync.ts",
         "start-txs": "ts-node bin/txs.ts",
         "start-receipts": "ts-node bin/receipts.ts",
         "start-contracts": "ts-node bin/contracts.ts",
