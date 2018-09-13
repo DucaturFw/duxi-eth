@@ -47,6 +47,9 @@ export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: stri
 export async function checkUpsyncTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
     await getOrCreateTable(conn, db, table, "number")
+    // add indexes
+    const simpleIndexes = ['number'];
+    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
 }
 
 export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string) {
@@ -99,7 +102,7 @@ export async function checkContractsTable(conn: r.Connection, db: r.Db, table: s
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
 	return (db.table(table) as any)
-        .max('number')('number')
+        .max({index: 'number'})('number')
         .default(0)
         .run(conn)
 }

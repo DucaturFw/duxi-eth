@@ -40,7 +40,7 @@ async function upsyncBlocks(conn: r.Connection, db: r.Db, table: string) {
 }
 
 export async function upsyncBlocksFromNode() {
-	console.debug("starting block syncer")
+	console.debug("starting block upsyncer")
 
 	const { conn, db } = await DB.connect(RDB_NODE, DB_NAME)
 	await DB.checkUpsyncTable(conn, db, TABLE_UPSYNC)
