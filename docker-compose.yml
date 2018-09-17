@@ -22,7 +22,7 @@ services:
 
   upsync:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start-upsync"]
+    command: ["npm-run-all", "-s", "start-upsync"]
     environment:
       DUXI_ETH_START_BLOCK: 5000000
     env_file: .env
@@ -31,38 +31,38 @@ services:
 
   blocks1:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start"]
+    command: ["npm-run-all", "-s", "start"]
     environment:
-      DUXI_ETH_START_BLOCK: 1000000
+      DUXI_ETH_START_BLOCK: 5000000
       DUXI_ETH_BLOCK_STEP: 3
-      HISTORY_SYNC_MODE: 1
+      DUXI_ETH_HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup
   blocks2:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start"]
+    command: ["npm-run-all", "-s", "start"]
     environment:
       DUXI_ETH_START_BLOCK: 5000001
       DUXI_ETH_BLOCK_STEP: 3
-      HISTORY_SYNC_MODE: 1
+      DUXI_ETH_HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup
   blocks3:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start"]
+    command: ["npm-run-all", "-s", "start"]
     environment:
       DUXI_ETH_START_BLOCK: 5000002
       DUXI_ETH_BLOCK_STEP: 3
-      HISTORY_SYNC_MODE: 1
+      DUXI_ETH_HISTORY_SYNC_MODE: 1
     env_file: .env
     depends_on:
       - setup
 
   txs:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start-txs"]
+    command: ["npm-run-all", "-s", "start-txs"]
     env_file: .env
     depends_on:
       - setup
@@ -70,7 +70,7 @@ services:
 
   receipts:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start-receipts"]
+    command: ["npm-run-all", "-s", "start-receipts"]
     env_file: .env
     depends_on:
       - setup
@@ -78,7 +78,7 @@ services:
 
   contracts:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start-contracts"]
+    command: ["npm-run-all", "-s", "start-contracts"]
     env_file: .env
     depends_on:
       - setup
@@ -87,7 +87,7 @@ services:
 
   transfers:
     image: microservices:1
-    command: ["npm-run-all", "-s", "setup", "start-transfers"]
+    command: ["npm-run-all", "-s", "start-transfers"]
     env_file: .env
     depends_on:
       - setup

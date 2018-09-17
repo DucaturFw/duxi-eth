@@ -2,6 +2,8 @@ import r from "rethinkdb"
 import * as DB from "./db"
 import {web3, RDB_NODE, DB_NAME, START_BLOCK, TABLE_UPSYNC, TABLE_BLOCKS} from './config'
 
+const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
+
 async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumber: number) {
 	const block = await web3.eth.getBlock(blockNumber)
 	console.info('Syncing: ', block.number)
@@ -10,7 +12,7 @@ async function syncBlock(conn: r.Connection, db: r.Db, table: string, blockNumbe
 }
 
 async function getMissingBlocks(conn: r.Connection, db: r.Db, table: string, start: number, end: number) {
-    const missing = await DB.getBlocksNum(conn, db, table, start, end)
+    const missing = await (await DB.getBlocksNum(conn, db, table, start, end) as any).toArray()
     const result: number[] = []
     for (let idx: number = start; idx <= end; ++idx) {
         if (missing.indexOf(idx) === -1) {
@@ -27,7 +29,9 @@ async function upsyncBlocks(conn: r.Connection, db: r.Db, table: string) {
     const step = 1
     console.debug(`last synced block: ${lastBlock}, last concrete block: ${Math.max(lastConcreteBlock, startBlock)}`)
     
-    console.assert(lastBlock > Math.max(lastConcreteBlock, startBlock))
+    if (lastBlock <= Math.max(lastConcreteBlock, startBlock)) {
+        return delay(15000)
+    }
     const missingBlocks = await getMissingBlocks(conn, db, TABLE_BLOCKS, Math.max(lastConcreteBlock, startBlock), Math.min(lastBlock, Math.max(lastConcreteBlock, startBlock) + 1000))
 	console.debug(`Missing blocks:`, missingBlocks)
 
@@ -47,6 +51,10 @@ export async function upsyncBlocksFromNode() {
 	
 	while(true)
 	{
-		await upsyncBlocks(conn, db, TABLE_UPSYNC)
+        try {
+            await upsyncBlocks(conn, db, TABLE_UPSYNC)
+        } catch (err) {
+            console.debug('Failed:', err.message)
+        }
 	}
 }

@@ -1,5 +1,5 @@
 import r, { ChangesOptions } from 'rethinkdb'
-import { RDB_USER, RDB_PWD, TABLE_BLOCKS } from './config';
+import { RDB_USER, RDB_PWD } from './config';
 
 export async function getOrCreateDatabase(database: string, connection: r.Connection): Promise<r.Db> {
     console.log('Opening database ', database)
@@ -16,6 +16,7 @@ async function getOrCreateTable(conn: r.Connection, db: r.Db, table: string, has
     if (tables.indexOf(table) == -1) {
         console.log(`Creating table '${table}', '${hash}' as primary key`)
         await db.tableCreate(table, { primary_key: hash }).run(conn)
+        await db.table(table).wait()
     }
 }
 
@@ -42,14 +43,13 @@ export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: stri
     // add indexes
     const simpleIndexes = ['number'];
     await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
+    await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
 }
 
 export async function checkUpsyncTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
     await getOrCreateTable(conn, db, table, "number")
-    // add indexes
-    const simpleIndexes = ['number'];
-    await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
+    await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
 }
 
 export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string) {
@@ -101,15 +101,20 @@ export async function checkContractsTable(conn: r.Connection, db: r.Db, table: s
 }
 
 export async function getLastSyncedBlock(conn: r.Connection, db: r.Db, table: string) {
-	return (db.table(table) as any)
-        .max({index: 'number'})('number')
-        .default(0)
+    // if (db.table(table).isEmpty()) return 0;
+    return (db.table(table) as any)
+        .max({index: 'number'})
+        .default({number: 0})
+        ('number')
         .run(conn)
 }
+
 export async function getLastUpsyncedBlock(conn: r.Connection, db: r.Db, table: string) {
+    // if (db.table(table).isEmpty()) return 0;
 	return (db.table(table) as any)
-        .max('number')('number')
-        .default(0)
+        .max({index: 'number'})
+        .default({number: 0})
+        ('number')
         .run(conn)
 }
 
@@ -182,7 +187,7 @@ export async function getContractsCalls(conn: r.Connection, db: r.Db, receiptsTa
 
 export async function getBlocksNum(conn: r.Connection, db: r.Db, table: string, from: number, to: number): Promise<number[]> {
     console.debug(`Searching missing blocks from ${from}`)
-    return (db.table(table)
-        .filter((x: any) => (x('number') >= from && x('number') <= to)) as any)('number')
+    return (db.table(table) as any)
+        .between(from, to, {index: 'number'})('number')
         .run(conn)
 }

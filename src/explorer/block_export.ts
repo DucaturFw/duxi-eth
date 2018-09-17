@@ -75,6 +75,10 @@ export async function syncBlocksFromNode() {
 
 	while(true)
 	{
-		await syncBlocks(conn, db, TABLE_BLOCKS, hist)
+		try{
+			await syncBlocks(conn, db, TABLE_BLOCKS, hist)
+		} catch (err) {
+			console.debug('Failed:', err.message)
+		}
 	}
 }

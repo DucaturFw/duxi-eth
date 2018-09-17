@@ -44,5 +44,5 @@ export async function syncTxReceiptsFromNode() {
 	const { conn, db } = await DB.connect(RDB_NODE, DB_NAME)
     await DB.checkTxReceiptsTable(conn, db, TABLE_TX_RECEIPTS)
     
-	syncTxReceipts(conn, db, TABLE_TXS, TABLE_TX_RECEIPTS)
+	await syncTxReceipts(conn, db, TABLE_TXS, TABLE_TX_RECEIPTS)
 }
