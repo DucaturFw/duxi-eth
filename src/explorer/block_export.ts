@@ -36,7 +36,7 @@ async function syncBlocks(conn: r.Connection, db: r.Db, table: string, hist: boo
 
 	const step = parseInt(BLOCK_STEP)
 	const startBlock = parseInt(START_BLOCK)
-	let nextBlock = Math.max(Math.ceil((lastBlock - (startBlock % step)) / step) + (startBlock % step), startBlock)
+	let nextBlock = Math.max(Math.ceil((lastBlock - (startBlock % step)) / step) * step + (startBlock % step), startBlock)
 	console.debug(`Sync from block: ${nextBlock}, blocks step: ${step}`)
 
 	console.assert(blockHeight > lastBlock, "chain is fucking unsynced")

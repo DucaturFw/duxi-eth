@@ -1,6 +1,6 @@
 import r from "rethinkdb"
 import * as DB from "./db"
-import {web3, RDB_NODE, DB_NAME, START_BLOCK, TABLE_UPSYNC, TABLE_BLOCKS} from './config'
+import {web3, RDB_NODE, DB_NAME, START_BLOCK, TABLE_UPSYNC, TABLE_BLOCKS, UPSYNC_DELAY, UPSYNC_BATCH_SIZE} from './config'
 
 const delay = (time: number) => new Promise(resolve => setTimeout(resolve, time))
 
@@ -30,9 +30,9 @@ async function upsyncBlocks(conn: r.Connection, db: r.Db, table: string) {
     console.debug(`last synced block: ${lastBlock}, last concrete block: ${Math.max(lastConcreteBlock, startBlock)}`)
     
     if (lastBlock <= Math.max(lastConcreteBlock, startBlock)) {
-        return delay(15000)
+        return delay(UPSYNC_DELAY)
     }
-    const missingBlocks = await getMissingBlocks(conn, db, TABLE_BLOCKS, Math.max(lastConcreteBlock, startBlock), Math.min(lastBlock, Math.max(lastConcreteBlock, startBlock) + 1000))
+    const missingBlocks = await getMissingBlocks(conn, db, TABLE_BLOCKS, Math.max(lastConcreteBlock, startBlock), Math.min(lastBlock, Math.max(lastConcreteBlock, startBlock) + UPSYNC_BATCH_SIZE))
 	console.debug(`Missing blocks:`, missingBlocks)
 
 	await Promise.all(missingBlocks.map(async (nextBlock: number) => {

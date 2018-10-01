@@ -1,0 +1,1 @@
+bin/stop.sh && bin/loc_start.sh

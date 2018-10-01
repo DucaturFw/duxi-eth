@@ -11,13 +11,15 @@ export async function getOrCreateDatabase(database: string, connection: r.Connec
     return r.db(database)
 }
 
-async function getOrCreateTable(conn: r.Connection, db: r.Db, table: string, hash: string) {
+async function getOrCreateTable(conn: r.Connection, db: r.Db, table: string, hash: string): Promise<boolean> {
     let tables = await db.tableList().run(conn)
     if (tables.indexOf(table) == -1) {
         console.log(`Creating table '${table}', '${hash}' as primary key`)
         await db.tableCreate(table, { primary_key: hash }).run(conn)
         await db.table(table).wait()
+        return true;
     }
+    return false;
 }
 
 export async function connect(node: string, db: string) {
@@ -39,17 +41,17 @@ async function createSimpleIndex(conn: r.Connection, db: r.Db, table: string, in
 
 export async function checkBlocksTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    await getOrCreateTable(conn, db, table, "hash")
+    let created = await getOrCreateTable(conn, db, table, "hash")
     // add indexes
     const simpleIndexes = ['number'];
     await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
-    await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
+    if (created) await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
 }
 
 export async function checkUpsyncTable(conn: r.Connection, db: r.Db, table: string) {
     // create table
-    await getOrCreateTable(conn, db, table, "number")
-    await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
+    let created = await getOrCreateTable(conn, db, table, "number")
+    if (created) await insert(conn, db, table, {number: 0}) // dirty hack for proper .max({index: 'number'})
 }
 
 export async function checkTxsTable(conn: r.Connection, db: r.Db, table: string) {
@@ -73,7 +75,7 @@ export async function checkTxReceiptsTable(conn: r.Connection, db: r.Db, table: 
     // but we replace it with `hash` for uniformity
     await getOrCreateTable(conn, db, table, "hash")
     // add indexes
-    const simpleIndexes = ['from', 'to', 'blockNumber']
+    const simpleIndexes = ['from', 'to', 'blockNumber', 'blockHash']
     await Promise.all(simpleIndexes.map(async (idx: string) => createSimpleIndex(conn, db, table, idx)))
     // compound indexes
     let indexes = await db.table(table).indexList().run(conn)

@@ -22,6 +22,9 @@ export const TABLE_ADDR_STATE = "eth_states" // token stakes for address (wallet
 export const TABLE_ABIS = "eth_abis" // list of known signatures and abis
 export const TABLE_UPSYNC = "eth_upsync" // concrete synced blocks since START_BLOCK
 export const VALIDATE_DEPTH = 15
+export const UPSYNC_DELAY = 15000
+export const UPSYNC_BATCH_SIZE = 100
+export const REPEATS_LIMIT = 3
 
 export const TYPES_MAP: any = {
     '0xe19260aff97b920c7df27010903aeb9c8d2be5d310a2c67824cf3f15396e4c16': 'ERC223',
